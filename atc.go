@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"time"
 
+	"github.com/influxdata/influxdb/client/v2"
 	"pault.ag/go/atc/atc"
 )
 
@@ -17,6 +19,15 @@ import (
  */
 
 func main() {
+	c, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:     "http://localhost:8086",
+		Username: "flights",
+		Password: "flights",
+	})
+	if err != nil {
+		log.Fatalln("Error: ", err)
+	}
+
 	data := make(chan *atc.Message, 100)
 	go func() {
 		defer panic("Stream died")
@@ -27,6 +38,25 @@ func main() {
 		switch el.TransmissionType {
 		case "3", "2":
 			log.Printf("%s %s %s\n", el.HexIdent, el.Latitude, el.Longitude)
+			// Create a new point batch
+			bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+				Database:  "flights",
+				Precision: "us",
+			})
+			if err != nil {
+				log.Fatalln("Error: ", err)
+			}
+			tags := map[string]string{"transponder": el.HexIdent}
+			fields := map[string]interface{}{
+				"latitude":  el.Latitude,
+				"longitude": el.Longitude,
+			}
+			pt, err := client.NewPoint("locations", tags, fields, time.Now())
+			if err != nil {
+				log.Fatalln("Error: ", err)
+			}
+			bp.AddPoint(pt)
+			c.Write(bp)
 		}
 	}
 }
