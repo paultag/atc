@@ -35,28 +35,49 @@ func main() {
 	}()
 
 	for el := range data {
+		fields := map[string]interface{}{}
+		tags := map[string]string{"transponder": el.HexIdent}
+		collection := ""
+
+		// Create a new point batch
+		bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+			Database:  "flights",
+			Precision: "us",
+		})
+		if err != nil {
+			log.Fatalln("Error: ", err)
+		}
+
 		switch el.TransmissionType {
 		case "3", "2":
 			log.Printf("%s %s %s\n", el.HexIdent, el.Latitude, el.Longitude)
-			// Create a new point batch
-			bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-				Database:  "flights",
-				Precision: "us",
-			})
-			if err != nil {
-				log.Fatalln("Error: ", err)
-			}
-			tags := map[string]string{"transponder": el.HexIdent}
-			fields := map[string]interface{}{
+			collection = "locations"
+			fields = map[string]interface{}{
+				"altitude":  el.Altitude,
 				"latitude":  el.Latitude,
 				"longitude": el.Longitude,
 			}
-			pt, err := client.NewPoint("locations", tags, fields, time.Now())
-			if err != nil {
-				log.Fatalln("Error: ", err)
+		case "6":
+			log.Printf("%s %s\n", el.HexIdent, el.Squawk)
+			collection = "squawks"
+			fields = map[string]interface{}{
+				"squawk": el.Squawk,
 			}
-			bp.AddPoint(pt)
-			c.Write(bp)
+
+		default:
+			continue
 		}
+
+		if collection == "" {
+			panic("No collection")
+			continue
+		}
+
+		pt, err := client.NewPoint(collection, tags, fields, time.Now())
+		if err != nil {
+			log.Fatalln("Error: ", err)
+		}
+		bp.AddPoint(pt)
+		c.Write(bp)
 	}
 }
