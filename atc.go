@@ -57,6 +57,12 @@ func main() {
 				"latitude":  el.Latitude,
 				"longitude": el.Longitude,
 			}
+		case "1":
+			log.Printf("%s %s\n", el.HexIdent, el.Callsign)
+			collection = "callsigns"
+			fields = map[string]interface{}{
+				"callsign": el.Callsign,
+			}
 		case "6":
 			log.Printf("%s %s\n", el.HexIdent, el.Squawk)
 			collection = "squawks"
