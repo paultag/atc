@@ -24,7 +24,7 @@ func main() {
 		defer panic("Lost ATC feed")
 		for el := range data {
 			switch el.TransmissionType {
-			case "3", "2", "7":
+			case "3", "2":
 				data, err := json.Marshal(map[string]interface{}{
 					"hex":       el.HexIdent,
 					"altitude":  el.Altitude,
