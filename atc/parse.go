@@ -3,6 +3,8 @@ package atc
 import (
 	"fmt"
 	"strings"
+
+	"time"
 )
 
 //
@@ -14,10 +16,10 @@ type Message struct {
 	AircraftID       string
 	HexIdent         string
 	FlightID         string
-	DateGenerated    string
-	TimeGenerated    string
-	DateLogged       string
-	TimeLogged       string
+	dateGenerated    string
+	timeGenerated    string
+	dateLogged       string
+	timeLogged       string
 	Callsign         string
 	Altitude         string
 	GroundSpeed      string
@@ -32,6 +34,21 @@ type Message struct {
 	OnGround         string
 }
 
+func parseTime(date, eventTime string) (time.Time, error) {
+	return time.Parse(
+		"2006/01/02 15:04:05.000",
+		fmt.Sprintf("%s %s", date, eventTime),
+	)
+}
+
+func (m *Message) GeneratedAt() (time.Time, error) {
+	return parseTime(m.dateGenerated, m.timeGenerated)
+}
+
+func (m *Message) LoggedAt() (time.Time, error) {
+	return parseTime(m.dateLogged, m.timeLogged)
+}
+
 func (m *Message) Marshal() []byte {
 	return []byte(
 		strings.Join([]string{
@@ -41,10 +58,10 @@ func (m *Message) Marshal() []byte {
 			m.AircraftID,
 			m.HexIdent,
 			m.FlightID,
-			m.DateGenerated,
-			m.TimeGenerated,
-			m.DateLogged,
-			m.TimeLogged,
+			m.dateGenerated,
+			m.timeGenerated,
+			m.dateLogged,
+			m.timeLogged,
 			m.Callsign,
 			m.Altitude,
 			m.GroundSpeed,
@@ -73,10 +90,10 @@ func (m *Message) Unmarshal(data []byte) error {
 	m.AircraftID = els[3]
 	m.HexIdent = els[4]
 	m.FlightID = els[5]
-	m.DateGenerated = els[6]
-	m.TimeGenerated = els[7]
-	m.DateLogged = els[8]
-	m.TimeLogged = els[9]
+	m.dateGenerated = els[6]
+	m.timeGenerated = els[7]
+	m.dateLogged = els[8]
+	m.timeLogged = els[9]
 	m.Callsign = els[10]
 	m.Altitude = els[11]
 	m.GroundSpeed = els[12]
