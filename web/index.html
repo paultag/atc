@@ -4,16 +4,49 @@
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     </head>
     <body>
+<style>
+body, html {
+    margin: 0px;
+}
+</style>
 <div id='map' style='width: 100%; height: 100%;'></div>
 <script>
 L.mapbox.accessToken = 'pk.eyJ1IjoicGF1bHRhZ2dzIiwiYSI6ImNqMzgwc2RwcjAyOHMycXVqMzF2enBnd2oifQ.I-TTFk4uez8J_sEOkVewMg';
 
-var map = new L.mapbox.Map('map', 'mapbox.dark').setView([38.85, -77.03], 10);
+var layers = {}
+  , map = new L.mapbox.Map('map', 'mapbox.dark').setView([38.85, -77.03], 11);
 
-const socket = new WebSocket('ws://localhost:8080');
+const socket = new WebSocket('ws://city-council.paultag.house:8080');
 socket.addEventListener('message', function (event) {
-    console.log('Message from server', event.data);
+    aircraft = JSON.parse(event.data);
+    hex = aircraft.HexIdent;
+    console.log(hex);
+
+    if (!aircraft.Locations) {
+        console.log("Removed: " + hex);
+        if (!layers.hasOwnProperty(hex)) {
+            return
+        }
+        layer = layers[hex];
+        map.removeLayer(layer);
+        delete layers[hex];
+        return
+    }
+
+    if (!layers.hasOwnProperty(hex)) {
+        layers[hex] = L.polyline(extractLocations(aircraft), {color: '#0071bc'}).addTo(map);
+        return
+    }
+    layer = layers[hex];
+    layer.setLatLngs(extractLocations(aircraft));
 });
+
+
+function extractLocations(data) {
+    return data.Locations.map(function(x) { return [x.Latitude, x.Longitude]});
+}
+
+
 </script>
     </body>
 </html>

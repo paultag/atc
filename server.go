@@ -1,11 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"sync"
 	"time"
 
+	"github.com/dustin/go-broadcast"
+	"golang.org/x/net/websocket"
 	"pault.ag/go/atc/atc"
 )
+
+var lock = sync.RWMutex{}
 
 type Location struct {
 	Latitude  string
@@ -20,17 +27,18 @@ type Aircraft struct {
 	GroundSpeed string
 	Track       string
 	Locations   []Location
+	Location    Location
 
 	LastUpdated time.Time
 }
 
-func ohshit(err error) {
-	if err != nil {
-		panic(err)
-	}
+func (a *Aircraft) UpdateLoaction(location Location) {
+	a.Location = location
+	a.Locations = append(a.Locations, location)
 }
 
 func Update(aircraft *Aircraft, message *atc.Message) {
+	aircraft.LastUpdated = time.Now()
 	switch message.TransmissionType {
 	case "1":
 		aircraft.Callsign = message.Callsign
@@ -38,13 +46,13 @@ func Update(aircraft *Aircraft, message *atc.Message) {
 		aircraft.Altitude = message.Altitude
 		aircraft.GroundSpeed = message.GroundSpeed
 		aircraft.Track = message.Track
-		aircraft.Locations = append(aircraft.Locations, Location{
+		aircraft.UpdateLoaction(Location{
 			Latitude:  message.Latitude,
 			Longitude: message.Longitude,
 		})
 	case "3":
 		aircraft.Altitude = message.Altitude
-		aircraft.Locations = append(aircraft.Locations, Location{
+		aircraft.UpdateLoaction(Location{
 			Latitude:  message.Latitude,
 			Longitude: message.Longitude,
 		})
@@ -59,33 +67,91 @@ func Update(aircraft *Aircraft, message *atc.Message) {
 	}
 }
 
+type Airspace map[string]*Aircraft
+
+func (airspace Airspace) Get(id string) *Aircraft {
+	lock.RLock()
+	defer lock.RUnlock()
+	var ok bool
+	var aircraft *Aircraft
+	if aircraft, ok = airspace[id]; !ok {
+		aircraft = &Aircraft{HexIdent: id}
+		airspace[id] = aircraft
+	}
+	return aircraft
+}
+
+func (a Airspace) Clean() []string {
+	removed := []string{}
+	for id, el := range a {
+		delta := time.Now().Sub(el.LastUpdated)
+		if delta > time.Second*1200 {
+			a.Delete(id)
+			removed = append(removed, id)
+		}
+	}
+	return removed
+}
+
+func (a Airspace) Delete(id string) {
+	lock.RLock()
+	defer lock.RUnlock()
+	delete(a, id)
+}
+
+type Message struct {
+	Location Location
+	Track    []Location
+	HexIdent string
+}
+
 func main() {
 	data := make(chan *atc.Message, 100)
 	go func() {
 		defer panic("Stream died")
-		// atc.Stream("aircraft.paultag.house:30006", data)
-		atc.Stream("localhost:30006", data)
+		atc.Stream("aircraft.paultag.house:30006", data)
+		// atc.Stream("localhost:30006", data)
 	}()
 
-	airspace := map[string]*Aircraft{}
+	clients := broadcast.NewBroadcaster(100)
+	defer clients.Close()
+	airspace := Airspace{}
+
 	go func() {
 		for message := range data {
-			var ok bool
-			var aircraft *Aircraft
-
-			if aircraft, ok = airspace[message.HexIdent]; !ok {
-				aircraft = &Aircraft{}
-				airspace[message.HexIdent] = aircraft
-			}
+			aircraft := airspace.Get(message.HexIdent)
 			Update(aircraft, message)
+			if len(aircraft.Locations) == 0 {
+				continue
+			}
+			clients.Submit(*aircraft)
 		}
 	}()
 
-	for {
-		for _, aircraft := range airspace {
-			fmt.Printf("%s\n", aircraft)
+	go func() {
+		for {
+			removed := airspace.Clean()
+			for _, id := range removed {
+				fmt.Printf("Cleaned out ID: %s\n", id)
+				clients.Submit(Aircraft{HexIdent: id})
+			}
+			time.Sleep(time.Second * 30)
 		}
-		fmt.Printf("\n\n\n\n\n\n")
-		time.Sleep(time.Second * 1)
+	}()
+
+	http.Handle("/", websocket.Handler(func(ws *websocket.Conn) {
+		updates := make(chan interface{}, 100)
+		clients.Register(updates)
+		defer clients.Unregister(updates)
+		output := json.NewEncoder(ws)
+		for el := range updates {
+			aircraft := el.(Aircraft)
+			output.Encode(aircraft)
+		}
+	}))
+
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		panic("ListenAndServe: " + err.Error())
 	}
 }
