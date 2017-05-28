@@ -1,6 +1,7 @@
 <html>
     <head>
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+<script src='reconnecting.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
     </head>
     <body>
@@ -14,9 +15,14 @@ body, html {
 L.mapbox.accessToken = 'pk.eyJ1IjoicGF1bHRhZ2dzIiwiYSI6ImNqMzgwc2RwcjAyOHMycXVqMzF2enBnd2oifQ.I-TTFk4uez8J_sEOkVewMg';
 
 var layers = {}
-  , map = new L.mapbox.Map('map', 'mapbox.dark').setView([38.85, -77.03], 11);
+  , map = map = new L.mapbox.Map('map', 'mapbox.dark', {
+    zoomControl: false,
+    attributionControl: false,
+  }).setView([38.83, -77.16], 11);
 
-const socket = new WebSocket('ws://city-council.paultag.house:8080');
+
+const socket = new ReconnectingWebSocket('ws://city-council.paultag.house:8080');
+
 socket.addEventListener('message', function (event) {
     aircraft = JSON.parse(event.data);
     hex = aircraft.HexIdent;
@@ -34,7 +40,7 @@ socket.addEventListener('message', function (event) {
     }
 
     if (!layers.hasOwnProperty(hex)) {
-        layers[hex] = L.polyline(extractLocations(aircraft), {color: '#0071bc'}).addTo(map);
+        layers[hex] = L.polyline(extractLocations(aircraft), {color: '#' + hex}).addTo(map);
         return
     }
     layer = layers[hex];
