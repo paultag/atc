@@ -69,6 +69,16 @@ func Update(aircraft *Aircraft, message *atc.Message) {
 
 type Airspace map[string]*Aircraft
 
+func (airspace Airspace) All() []*Aircraft {
+	ret := []*Aircraft{}
+	lock.RLock()
+	defer lock.RUnlock()
+	for _, el := range airspace {
+		ret = append(ret, el)
+	}
+	return ret
+}
+
 func (airspace Airspace) Get(id string) *Aircraft {
 	lock.RLock()
 	defer lock.RUnlock()
@@ -144,6 +154,11 @@ func main() {
 		clients.Register(updates)
 		defer clients.Unregister(updates)
 		output := json.NewEncoder(ws)
+
+		for _, el := range airspace.All() {
+			output.Encode(*el)
+		}
+
 		for el := range updates {
 			aircraft := el.(Aircraft)
 			output.Encode(aircraft)
