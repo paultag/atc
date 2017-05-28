@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package atc;
+
+option go_package = "pault.ag/go/atc/atc";
+
+message Location {
+    int64 latitude = 1;
+    int64 longitude = 2;
+    int32 altitude = 3;
+}
+
+message Heading {
+    int32 ground_speed = 1;
+    int32 heading = 2;
+    int32 vertical_rate = 3;
+}
+
+message Aircraft {
+    bytes ident = 1;
+    int32 squawk = 2;
+    string callsign = 3;
+
+    Location location = 2;
+    Heading heading = 3;
+}
