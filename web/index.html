@@ -23,6 +23,20 @@ var layers = {}
 
 const socket = new ReconnectingWebSocket('ws://city-council.paultag.house:8080');
 
+socket.addEventListener('open', function(event) {
+    console.log("Closed; purging layers");
+    for (var key in layers) {
+        console.log(key)
+        if (!layers.hasOwnProperty(key)) {
+            continue
+        }
+        console.log("Removing");
+        layer = layers[key];
+        map.removeLayer(layer);
+        delete layers[key];
+    }
+});
+
 socket.addEventListener('message', function (event) {
     aircraft = JSON.parse(event.data);
     hex = aircraft.HexIdent;
