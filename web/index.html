@@ -55,13 +55,13 @@ socket.addEventListener('message', function (event) {
 
     if (!layers.hasOwnProperty(hex)) {
         layer = layers[hex] = L.polyline(extractLocations(aircraft), {color: '#' + hex}).addTo(map);
-        layer.on("click", function(e) {
+        // layer.on("click", function(e) {
             layer.bindTooltip(
                 "<b>Hex:</b> " + aircraft.HexIdent + "<br\>" +
                 "<b>Callsign:</b> " + aircraft.Callsign + "<br\>" +
-                "<b>Squawk:</b> " + aircraft.Squawk + "<br\>"
-            ).openTooltip();
-        });
+                "<b>Squawk:</b> " + aircraft.Squawk + "<br\>",
+            );
+        // });
         return
     }
     layer = layers[hex];
