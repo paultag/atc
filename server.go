@@ -95,7 +95,7 @@ func (a Airspace) Clean() []string {
 	removed := []string{}
 	for id, el := range a {
 		delta := time.Now().Sub(el.LastUpdated)
-		if delta > time.Second*1200 {
+		if delta > time.Second*2400 {
 			a.Delete(id)
 			removed = append(removed, id)
 		}

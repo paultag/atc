@@ -54,7 +54,11 @@ socket.addEventListener('message', function (event) {
     }
 
     if (!layers.hasOwnProperty(hex)) {
-        layers[hex] = L.polyline(extractLocations(aircraft), {color: '#' + hex}).addTo(map);
+        layer = layers[hex] = L.polyline(extractLocations(aircraft), {color: '#' + hex}).addTo(map);
+        layer.on('click', function(e) {
+            window.open("https://www.radarbox24.com/data/mode-s/" + hex);
+
+        });
         return
     }
     layer = layers[hex];
