@@ -1,8 +1,9 @@
 <html>
     <head>
 <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
-<script src='reconnecting.js'></script>
 <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+
+<script src='reconnecting.js'></script>
     </head>
     <body>
 <style>
@@ -55,13 +56,7 @@ socket.addEventListener('message', function (event) {
 
     if (!layers.hasOwnProperty(hex)) {
         layer = layers[hex] = L.polyline(extractLocations(aircraft), {color: '#' + hex}).addTo(map);
-        // layer.on("click", function(e) {
-            layer.bindTooltip(
-                "<b>Hex:</b> " + aircraft.HexIdent + "<br\>" +
-                "<b>Callsign:</b> " + aircraft.Callsign + "<br\>" +
-                "<b>Squawk:</b> " + aircraft.Squawk + "<br\>",
-            );
-        // });
+        layer.bindTooltip("<b>Hex:</b> " + aircraft.HexIdent + "<br\>" + "<b>Callsign:</b> " + aircraft.Callsign + "<br\>" + "<b>Squawk:</b> " + aircraft.Squawk + "<br\>");
         return
     }
     layer = layers[hex];
