@@ -22,7 +22,7 @@ var layers = {}
   }).setView([38.83, -77.16], 11);
 
 
-const socket = new ReconnectingWebSocket('ws://city-council.paultag.house:8080');
+const socket = new ReconnectingWebSocket('ws://localhost:8000');
 
 socket.addEventListener('open', function(event) {
     console.log("Closed; purging layers");

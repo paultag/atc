@@ -119,8 +119,8 @@ func main() {
 	data := make(chan *atc.Message, 100)
 	go func() {
 		defer panic("Stream died")
-		atc.Stream("aircraft.paultag.house:30006", data)
-		// atc.Stream("localhost:30006", data)
+		// atc.Stream("aircraft.paultag.house:30006", data)
+		atc.Stream("localhost:30006", data)
 	}()
 
 	clients := broadcast.NewBroadcaster(100)
@@ -165,7 +165,7 @@ func main() {
 		}
 	}))
 
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}
